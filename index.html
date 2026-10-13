@@ -53,6 +53,7 @@ input.field,select.field{border:1px solid var(--line);background:var(--card);bor
 .tabs{display:flex;gap:6px;margin:12px 0 0;overflow-x:auto}
 .tab{border:1px solid var(--line);border-bottom:none;background:var(--soft);border-radius:10px 10px 0 0;padding:9px 14px;white-space:nowrap}
 .tab[aria-selected="true"]{background:var(--card);font-weight:650;color:var(--brand)}
+.tab .cm{margin-left:4px;font-size:13px}
 .tab .n{font-family:var(--mono);font-size:12px;margin-left:6px;color:var(--muted)}
 .daypanel{border-top-left-radius:0}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
@@ -106,9 +107,6 @@ input.nota:hover{border-color:var(--line)}
 .cons-grid label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
 .cons-grid input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--card);font:600 15px var(--mono);width:100%}
 .cons-grid input.testo{font:14px var(--sans)}
-.cons-def{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
-.cons-def label{font-size:11px;color:var(--muted)}
-.cons-def input{width:100%}
 .empty h2{margin:0 0 8px}
 dialog{border:1px solid var(--line);border-radius:14px;padding:0;max-width:min(560px,calc(100vw - 32px));width:100%;background:var(--card);color:var(--ink)}
 dialog::backdrop{background:rgba(10,20,30,.45)}
@@ -205,8 +203,7 @@ dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
         </div>
         <div id="msgs" class="msgs"></div>
         <div class="cons">
-          <div class="row" style="justify-content:space-between"><h3>Fabbisogno consumabili</h3>
-            <button id="b-cons-tutti" class="btn small" type="button">Copia su tutta la settimana</button></div>
+          <h3>Fabbisogno consumabili <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">— solo nel giorno in cui li ordini</span></h3>
           <div id="cons" class="cons-grid"></div>
         </div>
       </div>
@@ -251,8 +248,6 @@ dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
       <div><span class="label">Numero giro</span><input id="imp-giro" class="field" style="width:80px"></div>
       <div><span class="label">Turno</span><input id="imp-turno" class="field" style="width:80px"></div>
     </div>
-    <span class="label" style="margin-top:14px">Consumabili predefiniti: ogni giorno di una settimana nuova parte con questi valori</span>
-    <div id="imp-cons" class="cons-def"></div>
     <p class="muted" style="font-size:13px">Le modifiche valgono per le settimane create da qui in avanti; quelle già in archivio restano come sono.</p>
     <div class="foot"><button value="annulla" class="btn" formnovalidate>Annulla</button><button value="ok" class="btn primary">Salva</button></div>
   </form>
@@ -288,6 +283,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const isLatt = r => /LATTOSIO/i.test(r.nota||"");
 const isBan  = r => /BANANA/i.test(r.nota||"");
+const haCons = g => Object.values(g.cons||{}).some(v=>String(v||"").trim());
 const num = v => { const t=String(v??"").trim(); return /^\d{1,2}$/.test(t) ? Number(t) : null; };
 const haPasto = r => ["p","s","c"].some(k=>num(r[k])!==null);
 
@@ -440,7 +436,7 @@ function disegnaTabs(){
   const w = settimana();
   $("tabs").innerHTML = w.giorni.map((g,i)=>{
     const d = ggmmaaaa(piuGiorni(w.lunedi,i)).slice(0,5);
-    return `<button class="tab" role="tab" aria-selected="${i===state.giorno}" data-g="${i}">${BREVI[i]} ${d}<span class="n">${riepilogo(g.righe).pasti}</span></button>`;
+    return `<button class="tab" role="tab" aria-selected="${i===state.giorno}" data-g="${i}">${BREVI[i]} ${d}<span class="n">${riepilogo(g.righe).pasti}</span><span class="cm" title="Consumabili compilati in questo giorno">${haCons(g)?"📦":""}</span></button>`;
   }).join("");
 }
 
@@ -482,9 +478,13 @@ function aggiornaLato(){
     (rp.banana ? `<span class="k">Banana</span><span class="v">31×${rp.banana}</span>` : "") +
     gruppo("Unici", UNICI) + gruppo("Vegani", VEGANI) +
     (rp.nLatt ? `<span class="k">S. lattosio</span><span class="v">${esc(rp.variazioni.filter(Boolean).join(" · "))}</span>` : "");
-  $("msgs").innerHTML = controlli(g.righe).map(([t,m])=>`<div class="msg ${t}">${esc(m)}</div>`).join("");
+  const giorniCons = w.giorni.map((x,i)=>haCons(x)?FOGLI[i].toLowerCase():null).filter(Boolean);
+  const avvisi = controlli(g.righe);
+  if(giorniCons.length>1) avvisi.push(["warn", `Consumabili compilati su più giorni (${giorniCons.join(", ")}): di solito vanno su uno solo.`]);
+  $("msgs").innerHTML = avvisi.map(([t,m])=>`<div class="msg ${t}">${esc(m)}</div>`).join("");
   // aggiorna solo i contatori delle linguette, senza ridisegnare
   document.querySelectorAll("#tabs .tab .n").forEach((el,i)=> el.textContent = riepilogo(w.giorni[i].righe).pasti);
+  document.querySelectorAll("#tabs .tab .cm").forEach((el,i)=> el.textContent = haCons(w.giorni[i]) ? "📦" : "");
 }
 
 // ---------------------------------------------------------------- eventi
@@ -508,13 +508,8 @@ $("righe").addEventListener("input", e=>{
 $("cons").addEventListener("input", e=>{
   const k = e.target.dataset.cons; if(!k) return;
   const g = settimana().giorni[state.giorno]; g.cons = g.cons || {};
-  g.cons[k] = e.target.value.toUpperCase().trim(); salvaPresto();
+  g.cons[k] = e.target.value.toUpperCase().trim(); aggiornaLato(); salvaPresto();
 });
-$("b-cons-tutti").onclick = ()=>{
-  const w = settimana(), src = { ...(w.giorni[state.giorno].cons||{}) };
-  if(!confirm(`Copiare i consumabili di ${FOGLI[state.giorno].toLowerCase()} su tutti e cinque i giorni?`)) return;
-  w.giorni.forEach(g=> g.cons = { ...src }); salvaPresto(); $("b-stato").textContent = "Consumabili copiati su tutta la settimana";
-};
 $("righe").addEventListener("keydown", e=>{
   if(e.key!=="Enter" || !e.target.classList.contains("cod")) return;
   e.preventDefault();
@@ -546,7 +541,7 @@ suOk("d-nuova", e=>{
   if(state.settimane[lun]) return no("Questa settimana esiste già: la trovi nell'elenco.");
   if(!state.imp.commensali.length) return no("Prima inserisci i commensali (Commensali e impostazioni) o importa un Excel.");
   const w = { id:lun, lunedi:lun, stagione:$("n-stag").value.toUpperCase().trim(), num:$("n-num").value.trim(),
-    giorni: range(0,4).map(()=>({ cons:{ ...(state.imp.cons||{}) }, righe: state.imp.commensali.map(c=>({ nome:c.nome, p:"", s:"", c:"", nota:c.nota||"" })) })) };
+    giorni: range(0,4).map(()=>({ cons:{}, righe: state.imp.commensali.map(c=>({ nome:c.nome, p:"", s:"", c:"", nota:c.nota||"" })) })) };
   state.settimane[lun]=w; state.corrente=lun; state.giorno=0; disegna(); salvaPresto();
 });
 
@@ -575,7 +570,6 @@ function rigaPers(c){
 $("b-imp").onclick = ()=>{
   const box=$("imp-pers"); box.innerHTML=""; state.imp.commensali.forEach(c=>box.append(rigaPers(c)));
   $("imp-ditta").value=state.imp.ditta||""; $("imp-giro").value=state.imp.giro||""; $("imp-turno").value=state.imp.turno||"";
-  $("imp-cons").innerHTML = CONS.map(k=>`<label>${k}<input class="field" data-cons="${k}" value="${esc((state.imp.cons||{})[k]||"")}"></label>`).join("");
   $("d-imp").showModal();
 };
 $("imp-add").onclick = ()=>{ const r=rigaPers({nome:"",nota:""}); $("imp-pers").append(r); r.querySelector("input").focus(); };
@@ -587,8 +581,7 @@ $("imp-pers").addEventListener("click", e=>{
 });
 suOk("d-imp", async ()=>{
   const commensali=[...$("imp-pers").querySelectorAll(".pers")].map(d=>({ nome:d.querySelector(".p-nome").value.trim().toUpperCase(), nota:d.querySelector(".p-nota").value.trim().toUpperCase() })).filter(c=>c.nome);
-  state.imp = { ...state.imp, commensali, ditta:$("imp-ditta").value.trim().toUpperCase(), giro:$("imp-giro").value.trim(), turno:$("imp-turno").value.trim(),
-    cons: Object.fromEntries([...$("imp-cons").querySelectorAll("input")].map(i=>[i.dataset.cons, i.value.trim().toUpperCase()])) };
+  state.imp = { ...state.imp, commensali, ditta:$("imp-ditta").value.trim().toUpperCase(), giro:$("imp-giro").value.trim(), turno:$("imp-turno").value.trim() };
   try{ await store.salvaImp(structuredClone(state.imp)); $("b-stato").textContent="Impostazioni salvate"; }catch(e){ errore("Salvataggio non riuscito: "+(e.code||e.message)); }
   if(!settimana()) disegna();
 });

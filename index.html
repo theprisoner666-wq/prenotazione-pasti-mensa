@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mensa Horizon</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#1F5F8B">
+<style>
+:root{
+  --bg:#F2F4F7; --card:#FFFFFF; --ink:#16202B; --muted:#5B6878; --line:#D5DBE3;
+  --brand:#1F5F8B; --brand-ink:#FFFFFF; --soft:#E6EEF5;
+  --err:#B42318; --err-bg:#FDECEA; --warn:#8A5A00; --warn-bg:#FFF4D6; --ok:#1E7A46;
+  --latt:#0089BF; --banana:#FFF06A;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161C; --card:#1A2129; --ink:#E8EDF2; --muted:#9AA7B5; --line:#2E3946;
+    --brand:#5FA8DA; --brand-ink:#0B1520; --soft:#1F2C3A;
+    --err:#FF8A80; --err-bg:#3A1D1B; --warn:#F2C14E; --warn-bg:#3A3018; --ok:#6FD39A;
+    --latt:#4FC3F7; --banana:#6B6420;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 var(--sans)}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+header.top{background:var(--brand);color:var(--brand-ink)}
+header.top .wrap{display:flex;align-items:center;gap:12px;padding-top:10px;padding-bottom:10px}
+header.top h1{font-size:18px;margin:0;font-weight:650;flex:1}
+.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.18)}
+.badge.prova{background:#FFD24D;color:#3B2A00}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+.btn.ghost{background:transparent;border-color:rgba(255,255,255,.35);color:inherit}
+.btn.small{padding:5px 9px;font-size:13px}
+.btn.danger{color:var(--err)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.muted{color:var(--muted)}
+.label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+input.field,select.field{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 9px;min-width:0}
+.weekbar{margin-bottom:12px}
+.weekbar select{min-width:260px;font-weight:600}
+.tabs{display:flex;gap:6px;margin:12px 0 0;overflow-x:auto}
+.tab{border:1px solid var(--line);border-bottom:none;background:var(--soft);border-radius:10px 10px 0 0;padding:9px 14px;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--card);font-weight:650;color:var(--brand)}
+.tab .n{font-family:var(--mono);font-size:12px;margin-left:6px;color:var(--muted)}
+.daypanel{border-top-left-radius:0}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.layout>*{min-width:0}
+.daypanel{overflow-x:auto}
+@media (max-width:600px){
+  .wrap{padding:12px}
+  header.top h1{font-size:15px}
+  input.cod{width:42px;font-size:16px;padding:6px 0}
+  input.nota{min-width:70px}
+  table.grid td{padding:3px 2px}
+  table.grid td.nome{white-space:normal;font-size:14px}
+  table.grid tr.latt td.nome::after{display:block;margin-left:0}
+  .weekbar select{min-width:0;width:100%}
+}
+table.grid{border-collapse:collapse;width:100%}
+table.grid th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.grid th.c{text-align:center}
+table.grid tfoot td{border-bottom:none;padding-top:10px;font-weight:400;font-size:15px}
+table.grid td{padding:3px 4px;border-bottom:1px solid var(--line)}
+table.grid td.nome{font-weight:600;padding-left:6px;white-space:nowrap}
+table.grid tr.assente td.nome{color:var(--muted);font-weight:400}
+table.grid tr.latt td.nome::after{content:"senza lattosio";font-size:11px;color:var(--latt);font-weight:600;margin-left:8px}
+input.cod{width:58px;text-align:center;font:600 18px var(--mono);border:1px solid var(--line);border-radius:7px;padding:5px 2px;background:var(--card)}
+input.cod:focus,input.nota:focus,input.field:focus{outline:2px solid var(--brand);outline-offset:0;border-color:var(--brand)}
+input.cod.bad{border-color:var(--err);background:var(--err-bg);color:var(--err)}
+input.cod.ban{background:var(--banana)}
+tr.latt input.cod{color:var(--latt)}
+input.nota{width:100%;min-width:120px;border:1px solid transparent;border-radius:7px;padding:6px 7px;background:transparent;font-size:13px}
+input.nota:hover{border-color:var(--line)}
+.x{border:none;background:none;color:var(--muted);font-size:18px;padding:2px 6px;border-radius:6px}
+.x:hover{color:var(--err);background:var(--err-bg)}
+.hint{font-size:13px;margin-top:8px}
+.hint.err{color:var(--err)}
+.msgs{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.msg{font-size:13px;border-radius:8px;padding:7px 9px}
+.msg.err{background:var(--err-bg);color:var(--err)}
+.msg.warn{background:var(--warn-bg);color:var(--warn)}
+.side h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 8px}
+.tot{font:700 28px var(--mono)}
+.conti{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:14px;margin-top:6px}
+.conti .k{color:var(--muted)}
+.conti .v{font-family:var(--mono)}
+.actions{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.actions .btn{justify-content:center}
+.empty{text-align:center;padding:40px 16px}
+.cons{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.cons h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.cons-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.cons-grid label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.cons-grid input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--card);font:600 15px var(--mono);width:100%}
+.cons-grid input.testo{font:14px var(--sans)}
+.cons-def{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.cons-def label{font-size:11px;color:var(--muted)}
+.cons-def input{width:100%}
+.empty h2{margin:0 0 8px}
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;max-width:min(560px,calc(100vw - 32px));width:100%;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(10,20,30,.45)}
+dialog form{padding:18px}
+dialog h2{margin:0 0 12px;font-size:18px}
+dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.pers{display:grid;grid-template-columns:1fr 1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px}
+.pers input{width:100%}
+.login{max-width:420px;margin:60px auto;text-align:center}
+.status{font-size:12px;opacity:.85}
+#stampa{display:none}
+
+/* ---------- riepilogo per il fornitore: coordinate prese dal modulo originale, A4 a 100 dpi ---------- */
+.pagina,.pagina *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pagina{position:relative;width:827px;height:1169px;background:#fff;color:#000;font-family:Calibri,Carlito,Arial,sans-serif;overflow:hidden}
+.pagina *{position:absolute;margin:0}
+.pagina .t{white-space:nowrap;font-weight:700;font-size:16px;line-height:1}
+.pagina .box{border:1.5px solid #000}
+.pagina .cell{border:1px solid #000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;position:absolute}
+.pagina .giallo{background:#FFFF00}
+.pagina .linea{border-top:2px solid #000;height:0}
+@media print{
+  @page{size:A4;margin:0}
+  body{background:#fff}
+  body>*:not(#stampa){display:none!important}
+  #stampa{display:block}
+  #stampa .pagina{zoom:.9597;break-after:page}
+  #stampa .pagina:last-child{break-after:auto}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>Mensa Horizon · prenotazione pasti</h1>
+    <span id="b-prova" class="badge prova" hidden>MODALITÀ PROVA</span>
+    <span id="b-stato" class="status"></span>
+    <button id="b-esci" class="btn ghost small" hidden>Esci</button>
+  </div>
+</header>
+
+<section id="v-login" class="wrap" hidden>
+  <div class="card login">
+    <h2>Accesso</h2>
+    <p class="muted">Entra con l'account Google della mensa.</p>
+    <button id="b-accedi" class="btn primary">Accedi con Google</button>
+    <p id="login-err" class="hint err"></p>
+  </div>
+</section>
+
+<main id="v-app" class="wrap" hidden>
+  <div class="card weekbar">
+    <div class="row">
+      <div>
+        <span class="label">Settimana</span>
+        <select id="sel-sett" class="field"></select>
+      </div>
+      <div>
+        <span class="label">Stagione</span>
+        <input id="w-stag" class="field" style="width:130px">
+      </div>
+      <div>
+        <span class="label">Settimana menù</span>
+        <input id="w-num" class="field" style="width:70px" inputmode="numeric">
+      </div>
+      <div class="grow"></div>
+      <button id="b-nuova" class="btn primary">+ Nuova settimana</button>
+      <button id="b-importa" class="btn">Importa da Excel</button>
+      <button id="b-imp" class="btn">Commensali e impostazioni</button>
+    </div>
+  </div>
+
+  <div id="vuoto" class="card empty" hidden>
+    <h2>Nessuna settimana</h2>
+    <p class="muted">Per partire importa l'ultima <b>Lista Commensali</b> in Excel: l'app prende nomi e note,<br>e la settimana importata resta in archivio. Oppure inserisci i commensali a mano.</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn primary" data-act="importa">Importa Lista Commensali</button>
+      <button class="btn" data-act="imp">Inserisci i commensali</button>
+    </div>
+  </div>
+
+  <div id="settimana" hidden>
+    <div id="tabs" class="tabs" role="tablist"></div>
+    <div class="layout">
+      <div class="card daypanel">
+        <table class="grid">
+          <thead><tr><th>Commensale</th><th class="c">P</th><th class="c">S</th><th class="c">C</th><th>Nota</th><th></th></tr></thead>
+          <tbody id="righe"></tbody>
+          <tfoot><tr><td class="nome" id="tot-riga" colspan="6"></td></tr></tfoot>
+        </table>
+        <div class="row" style="margin-top:10px">
+          <button id="b-ospite" class="btn small">+ Aggiungi persona solo a questo giorno</button>
+          <span class="muted" style="font-size:13px">Riga vuota = assente (nel file esce «---»). Invio passa alla casella dopo.</span>
+        </div>
+        <div id="msgs" class="msgs"></div>
+        <div class="cons">
+          <div class="row" style="justify-content:space-between"><h3>Fabbisogno consumabili</h3>
+            <button id="b-cons-tutti" class="btn small" type="button">Copia su tutta la settimana</button></div>
+          <div id="cons" class="cons-grid"></div>
+        </div>
+      </div>
+      <aside class="card side">
+        <h3 id="side-tit">Riepilogo del giorno</h3>
+        <div class="row" style="align-items:baseline"><span class="tot" id="side-tot">0</span><span class="muted">pasti</span></div>
+        <div id="side-conti" class="conti"></div>
+        <div class="actions">
+          <button id="b-excel" class="btn primary">Scarica Lista Commensali (Excel)</button>
+          <button id="b-pdf" class="btn">Riepilogo fornitore → PDF</button>
+          <button id="b-elimina" class="btn small danger">Elimina questa settimana</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<div id="stampa"></div>
+
+<dialog id="d-nuova">
+  <form method="dialog">
+    <h2>Nuova settimana</h2>
+    <div class="row">
+      <div><span class="label">Lunedì</span><input id="n-lun" type="date" class="field" required></div>
+      <div><span class="label">Stagione</span><input id="n-stag" class="field" style="width:130px"></div>
+      <div><span class="label">Settimana menù</span><input id="n-num" class="field" style="width:70px" inputmode="numeric"></div>
+    </div>
+    <p class="muted" style="font-size:13px">I cinque giorni partono con i commensali dell'elenco e le loro note fisse, con le scelte vuote.</p>
+    <p id="n-err" class="hint err"></p>
+    <div class="foot"><button value="annulla" class="btn" formnovalidate>Annulla</button><button id="n-ok" value="ok" class="btn primary">Crea</button></div>
+  </form>
+</dialog>
+
+<dialog id="d-imp">
+  <form method="dialog">
+    <h2>Commensali e impostazioni</h2>
+    <span class="label">Elenco fisso, nell'ordine in cui compare nel foglio. La nota fissa (es. SENZA LATTOSIO) si ripete ogni giorno.</span>
+    <div id="imp-pers"></div>
+    <button type="button" id="imp-add" class="btn small">+ Aggiungi commensale</button>
+    <div class="row" style="margin-top:14px">
+      <div><span class="label">Ditta</span><input id="imp-ditta" class="field" style="width:150px"></div>
+      <div><span class="label">Numero giro</span><input id="imp-giro" class="field" style="width:80px"></div>
+      <div><span class="label">Turno</span><input id="imp-turno" class="field" style="width:80px"></div>
+    </div>
+    <span class="label" style="margin-top:14px">Consumabili predefiniti: ogni giorno di una settimana nuova parte con questi valori</span>
+    <div id="imp-cons" class="cons-def"></div>
+    <p class="muted" style="font-size:13px">Le modifiche valgono per le settimane create da qui in avanti; quelle già in archivio restano come sono.</p>
+    <div class="foot"><button value="annulla" class="btn" formnovalidate>Annulla</button><button value="ok" class="btn primary">Salva</button></div>
+  </form>
+</dialog>
+
+<dialog id="d-ospite">
+  <form method="dialog">
+    <h2>Aggiungi persona a <span id="o-giorno"></span></h2>
+    <span class="label">Nome</span>
+    <input id="o-nome" class="field" style="width:100%" list="o-lista" required>
+    <datalist id="o-lista"></datalist>
+    <div class="foot"><button value="annulla" class="btn" formnovalidate>Annulla</button><button value="ok" class="btn primary">Aggiungi</button></div>
+  </form>
+</dialog>
+
+<input id="f-xls" type="file" accept=".xls,.xlsx" hidden>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+
+// ---------------------------------------------------------------- costanti del modulo fornitore
+const GIORNI   = ["LUNEDI'","MARTEDI'","MERCOLEDI'","GIOVEDI'","VENERDI'"];
+const FOGLI    = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì"];
+const BREVI    = ["Lun","Mar","Mer","Gio","Ven"];
+const range    = (a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const PRIMI    = range(1,12), SECONDI = range(13,24), CONTORNI = range(25,31), UNICI = range(32,35), VEGANI = range(60,65);
+const VALIDI   = { p:[...PRIMI,...UNICI], s:[...SECONDI,...UNICI,...VEGANI], c:CONTORNI };
+const NOTI     = new Set([...PRIMI,...SECONDI,...CONTORNI,...UNICI,...VEGANI]);
+const COL      = { p:"P", s:"S", c:"C" };
+const CONS     = ["POSATE","TOVAGLIETTE","TOVAGLIOLI","OLIO","OLIO EXTRA","ACETO","SALE","VARIE"];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isLatt = r => /LATTOSIO/i.test(r.nota||"");
+const isBan  = r => /BANANA/i.test(r.nota||"");
+const num = v => { const t=String(v??"").trim(); return /^\d{1,2}$/.test(t) ? Number(t) : null; };
+const haPasto = r => ["p","s","c"].some(k=>num(r[k])!==null);
+
+// ---------------------------------------------------------------- date
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const daIso = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const piuGiorni = (s,n) => { const d=daIso(s); d.setDate(d.getDate()+n); return iso(d); };
+const ggmmaaaa = s => { const d=daIso(s); return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`; };
+const ggmmaa = s => ggmmaaaa(s).replace(/\/(\d\d)(\d\d)$/, "-$2").replace("/","-");
+const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+const etichetta = w => { const a=daIso(w.lunedi), b=daIso(piuGiorni(w.lunedi,4));
+  const per = a.getMonth()===b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MESI[b.getMonth()]}` : `${a.getDate()} ${MESI[a.getMonth()]} – ${b.getDate()} ${MESI[b.getMonth()]}`;
+  return `${per} ${b.getFullYear()} · ${w.stagione||""} ${w.num||""}`.trim(); };
+const prossimoLunedi = () => { const d=new Date(); d.setHours(0,0,0,0); const k=(8-d.getDay())%7||7; d.setDate(d.getDate()+k); return iso(d); };
+
+// ---------------------------------------------------------------- calcolo del riepilogo (stesse regole del foglio a mano)
+function riepilogo(righe){
+  const conta = {}, latt = [];
+  let pasti = 0, banana = 0;
+  for(const r of righe){
+    if(!haPasto(r)) continue;
+    pasti++;
+    if(isLatt(r)){ latt.push(r); continue; }          // senza lattosio: fuori dai conteggi, va in VARIAZIONI
+    for(const k of ["p","s","c"]){
+      const n = num(r[k]); if(n===null) continue;
+      if(n===31 && isBan(r)){ banana++; continue; }  // 31 banana: riga gialla
+      conta[n] = (conta[n]||0)+1;
+    }
+  }
+  // variazioni: per colonna, "1x Nr. 4" (raggruppate se le persone sono piu' di una)
+  const variazioni = ["p","s","c"].map(k=>{
+    const c={}; for(const r of latt){ const n=num(r[k]); if(n!==null) c[n]=(c[n]||0)+1; }
+    return Object.entries(c).map(([n,q])=>`${q}x Nr. ${n}`).join("  ");
+  });
+  return { conta, pasti, banana, variazioni, nLatt: latt.length };
+}
+
+function controlli(righe){
+  const out = [];
+  const visti = new Map();
+  righe.forEach(r=>{
+    const chiave = r.nome.trim().toUpperCase();
+    if(visti.has(chiave)) out.push(["err", `${r.nome} compare due volte.`]);
+    visti.set(chiave,1);
+    for(const k of ["p","s","c"]){
+      const t = String(r[k]??"").trim(); if(!t || t==="---") continue;
+      const n = num(t);
+      if(n===null) out.push(["err", `${r.nome}, colonna ${COL[k]}: «${t}» non è un numero.`]);
+      else if(!NOTI.has(n)) out.push(["err", `${r.nome}, colonna ${COL[k]}: il piatto ${n} non esiste nel modulo del fornitore e non verrebbe contato.`]);
+      else if(!VALIDI[k].includes(n)) out.push(["warn", `${r.nome}: il ${n} è nella colonna ${COL[k]}, controlla che sia giusto.`]);
+    }
+    if(isBan(r) && ![r.p,r.s,r.c].some(v=>num(v)===31)) out.push(["warn", `${r.nome} ha la nota BANANA ma nessun 31.`]);
+  });
+  return out;
+}
+
+// ---------------------------------------------------------------- archivio: Firebase, oppure il browser in modalita' prova
+const PROVA = !firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("INCOLLA");
+const state = { settimane:{}, imp:{ commensali:[], ditta:"HORIZON", giro:"10", turno:"" }, corrente:null, giorno:0 };
+let store;
+
+function storeLocale(){
+  const K="mensa-prova";
+  const leggi = () => { try{ return JSON.parse(localStorage.getItem(K)) || {}; }catch{ return {}; } };
+  const scrivi = d => { try{ localStorage.setItem(K, JSON.stringify(d)); }catch{} };
+  return {
+    async avvia(onDati){ const d=leggi(); onDati(d.settimane||{}, d.imp||null); },
+    async salvaSettimana(w){ const d=leggi(); d.settimane=d.settimane||{}; d.settimane[w.id]=w; scrivi(d); },
+    async eliminaSettimana(id){ const d=leggi(); delete (d.settimane||{})[id]; scrivi(d); },
+    async salvaImp(imp){ const d=leggi(); d.imp=imp; scrivi(d); },
+  };
+}
+
+async function storeFirebase(){
+  const V="10.12.2", G=`https://www.gstatic.com/firebasejs/${V}`;
+  const { initializeApp } = await import(`${G}/firebase-app.js`);
+  const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } = await import(`${G}/firebase-auth.js`);
+  const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, setDoc, deleteDoc } = await import(`${G}/firebase-firestore.js`);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const fs = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+  $("b-accedi").onclick = async ()=>{ $("login-err").textContent="";
+    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ $("login-err").textContent = "Accesso non riuscito: " + (e.code||e.message); } };
+  $("b-esci").onclick = ()=>signOut(auth);
+  let stacca = [];
+  return {
+    async avvia(onDati){
+      onAuthStateChanged(auth, user=>{
+        stacca.forEach(f=>f()); stacca=[];
+        $("v-login").hidden = !!user; $("v-app").hidden = !user; $("b-esci").hidden = !user;
+        if(!user) return;
+        let sett=null, imp=undefined;
+        const pronto = ()=>{ if(sett!==null && imp!==undefined) onDati(sett, imp); };
+        stacca.push(onSnapshot(collection(fs,"settimane"), snap=>{
+          if(snap.metadata.hasPendingWrites && sett!==null) return;   // e' l'eco di quello che sto scrivendo
+          sett={}; snap.forEach(d=>sett[d.id]=d.data()); pronto();
+        }, e=>errore("Lettura archivio non riuscita: "+e.code)));
+        stacca.push(onSnapshot(doc(fs,"impostazioni","generale"), d=>{
+          if(d.metadata.hasPendingWrites && imp!==undefined) return;
+          imp = d.exists() ? d.data() : null; pronto();
+        }, e=>errore("Lettura impostazioni non riuscita: "+e.code)));
+      });
+    },
+    salvaSettimana: w => setDoc(doc(fs,"settimane",w.id), w),
+    eliminaSettimana: id => deleteDoc(doc(fs,"settimane",id)),
+    salvaImp: imp => setDoc(doc(fs,"impostazioni","generale"), imp),
+  };
+}
+
+function errore(t){ $("b-stato").textContent = t; }
+
+// salvataggio ritardato: si scrive mezzo secondo dopo l'ultima battuta
+let timer=null;
+function salvaPresto(){
+  const w = settimana(); if(!w) return;
+  $("b-stato").textContent = "Salvataggio…";
+  clearTimeout(timer);
+  timer = setTimeout(async ()=>{
+    w.aggiornato = new Date().toISOString();
+    try{ await store.salvaSettimana(structuredClone(w)); $("b-stato").textContent = "Salvato"; }
+    catch(e){ errore("Salvataggio non riuscito: "+(e.code||e.message)); }
+  }, 500);
+}
+
+// ---------------------------------------------------------------- interfaccia
+const settimana = () => state.settimane[state.corrente] || null;
+
+function onDati(sett, imp){
+  state.settimane = sett || {};
+  if(imp) state.imp = { ditta:"HORIZON", giro:"10", turno:"", ...imp };
+  const ids = Object.keys(state.settimane).sort();
+  if(!state.corrente || !state.settimane[state.corrente]) state.corrente = ids.at(-1) || null;
+  disegna();
+}
+
+function disegna(){
+  const ids = Object.keys(state.settimane).sort().reverse();
+  $("sel-sett").innerHTML = ids.map(id=>`<option value="${id}" ${id===state.corrente?"selected":""}>${esc(etichetta(state.settimane[id]))}</option>`).join("");
+  $("sel-sett").disabled = !ids.length;
+  const w = settimana();
+  $("vuoto").hidden = !!w; $("settimana").hidden = !w;
+  $("w-stag").disabled = $("w-num").disabled = !w;
+  if(!w){ $("w-stag").value=""; $("w-num").value=""; return; }
+  if(document.activeElement!==$("w-stag")) $("w-stag").value = w.stagione||"";
+  if(document.activeElement!==$("w-num")) $("w-num").value = w.num||"";
+  disegnaTabs(); disegnaGiorno();
+}
+
+function disegnaTabs(){
+  const w = settimana();
+  $("tabs").innerHTML = w.giorni.map((g,i)=>{
+    const d = ggmmaaaa(piuGiorni(w.lunedi,i)).slice(0,5);
+    return `<button class="tab" role="tab" aria-selected="${i===state.giorno}" data-g="${i}">${BREVI[i]} ${d}<span class="n">${riepilogo(g.righe).pasti}</span></button>`;
+  }).join("");
+}
+
+function disegnaGiorno(){
+  const w = settimana(), g = w.giorni[state.giorno];
+  const tb = $("righe");
+  const fuoco = document.activeElement && tb.contains(document.activeElement) ? document.activeElement.dataset.pos : null;
+  tb.innerHTML = g.righe.map((r,i)=>{
+    const cls = [haPasto(r)?"":"assente", isLatt(r)?"latt":""].join(" ");
+    const cod = k => { const n=num(r[k]); const bad = String(r[k]??"").trim() && (n===null ? r[k].trim()!=="---" : !NOTI.has(n));
+      const ban = n===31 && isBan(r);
+      return `<td><input class="cod ${bad?"bad":""} ${ban?"ban":""}" data-i="${i}" data-k="${k}" data-pos="${i}${k}" value="${esc(r[k]??"")}" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="${esc(r.nome)} ${COL[k]}"></td>`; };
+    return `<tr class="${cls}"><td class="nome">${esc(r.nome)}</td>${cod("p")}${cod("s")}${cod("c")}
+      <td><input class="nota" data-i="${i}" data-k="nota" data-pos="${i}nota" value="${esc(r.nota||"")}" placeholder="—" aria-label="nota ${esc(r.nome)}"></td>
+      <td>${r.ospite?`<button class="x" data-tolgo="${i}" title="Togli da questo giorno">×</button>`:""}</td></tr>`;
+  }).join("");
+  if(fuoco){ const el = tb.querySelector(`[data-pos="${fuoco}"]`); if(el){ el.focus(); const n=el.value.length; try{el.setSelectionRange(n,n);}catch{} } }
+  disegnaCons();
+  aggiornaLato();
+}
+
+function disegnaCons(){
+  const g = settimana().giorni[state.giorno]; g.cons = g.cons || {};
+  const fuoco = document.activeElement?.dataset?.cons;
+  $("cons").innerHTML = CONS.map(k=>`<label>${k}<input data-cons="${k}" class="${k==="VARIE"?"testo":""}" value="${esc(g.cons[k]||"")}" ${k==="VARIE"?"":'inputmode="numeric"'} autocomplete="off"></label>`).join("");
+  if(fuoco) $("cons").querySelector(`[data-cons="${fuoco}"]`)?.focus();
+}
+
+function aggiornaLato(){
+  const w = settimana(), g = w.giorni[state.giorno];
+  const rp = riepilogo(g.righe);
+  $("side-tit").textContent = `Riepilogo ${FOGLI[state.giorno].toLowerCase()} ${ggmmaaaa(piuGiorni(w.lunedi,state.giorno))}`;
+  $("side-tot").textContent = rp.pasti;
+  const presenti = g.righe.length;
+  $("tot-riga").innerHTML = `Totale: <b>${rp.pasti}</b> ${rp.pasti===1?"pasto":"pasti"} su ${presenti} commensali` + (rp.nLatt?` · di cui ${rp.nLatt} senza lattosio`:"");
+  const gruppo = (nome, codici) => { const v = codici.filter(c=>rp.conta[c]).map(c=>`${c}×${rp.conta[c]}`); return v.length ? `<span class="k">${nome}</span><span class="v">${v.join("  ")}</span>` : ""; };
+  $("side-conti").innerHTML =
+    gruppo("Primi", PRIMI) + gruppo("Secondi", SECONDI) + gruppo("Contorni", CONTORNI) +
+    (rp.banana ? `<span class="k">Banana</span><span class="v">31×${rp.banana}</span>` : "") +
+    gruppo("Unici", UNICI) + gruppo("Vegani", VEGANI) +
+    (rp.nLatt ? `<span class="k">S. lattosio</span><span class="v">${esc(rp.variazioni.filter(Boolean).join(" · "))}</span>` : "");
+  $("msgs").innerHTML = controlli(g.righe).map(([t,m])=>`<div class="msg ${t}">${esc(m)}</div>`).join("");
+  // aggiorna solo i contatori delle linguette, senza ridisegnare
+  document.querySelectorAll("#tabs .tab .n").forEach((el,i)=> el.textContent = riepilogo(w.giorni[i].righe).pasti);
+}
+
+// ---------------------------------------------------------------- eventi
+$("tabs").addEventListener("click", e=>{ const b=e.target.closest(".tab"); if(!b) return; state.giorno=+b.dataset.g; disegnaTabs(); disegnaGiorno(); });
+$("sel-sett").addEventListener("change", e=>{ state.corrente=e.target.value; state.giorno=0; disegna(); });
+$("w-stag").addEventListener("input", e=>{ const w=settimana(); if(!w) return; w.stagione=e.target.value.toUpperCase().trim(); salvaPresto(); });
+$("w-num").addEventListener("input", e=>{ const w=settimana(); if(!w) return; w.num=e.target.value.trim(); salvaPresto(); });
+
+$("righe").addEventListener("input", e=>{
+  const el = e.target; if(!el.dataset.k) return;
+  const w = settimana(), r = w.giorni[state.giorno].righe[+el.dataset.i];
+  r[el.dataset.k] = el.dataset.k==="nota" ? el.value.toUpperCase() : el.value.trim();
+  if(el.dataset.k==="nota"){ const p=el.selectionStart; el.value = r.nota; el.setSelectionRange(p,p); }
+  const tr = el.closest("tr");
+  tr.classList.toggle("assente", !haPasto(r)); tr.classList.toggle("latt", isLatt(r));
+  tr.querySelectorAll("input.cod").forEach(c=>{ const v=r[c.dataset.k]; const n=num(v);
+    c.classList.toggle("bad", !!String(v??"").trim() && (n===null ? String(v).trim()!=="---" : !NOTI.has(n)));
+    c.classList.toggle("ban", n===31 && isBan(r)); });
+  aggiornaLato(); salvaPresto();
+});
+$("cons").addEventListener("input", e=>{
+  const k = e.target.dataset.cons; if(!k) return;
+  const g = settimana().giorni[state.giorno]; g.cons = g.cons || {};
+  g.cons[k] = e.target.value.toUpperCase().trim(); salvaPresto();
+});
+$("b-cons-tutti").onclick = ()=>{
+  const w = settimana(), src = { ...(w.giorni[state.giorno].cons||{}) };
+  if(!confirm(`Copiare i consumabili di ${FOGLI[state.giorno].toLowerCase()} su tutti e cinque i giorni?`)) return;
+  w.giorni.forEach(g=> g.cons = { ...src }); salvaPresto(); $("b-stato").textContent = "Consumabili copiati su tutta la settimana";
+};
+$("righe").addEventListener("keydown", e=>{
+  if(e.key!=="Enter" || !e.target.classList.contains("cod")) return;
+  e.preventDefault();
+  const tutti = [...$("righe").querySelectorAll("input.cod")];
+  const k = tutti.indexOf(e.target); const dopo = tutti[k+1];
+  if(dopo){ dopo.focus(); dopo.select(); }
+});
+$("righe").addEventListener("focusin", e=>{ if(e.target.classList.contains("cod")) e.target.select(); });
+$("righe").addEventListener("click", e=>{
+  const b = e.target.closest("[data-tolgo]"); if(!b) return;
+  const w = settimana(); w.giorni[state.giorno].righe.splice(+b.dataset.tolgo,1); disegnaGiorno(); salvaPresto();
+});
+
+// nuova settimana
+$("b-nuova").onclick = ()=>{
+  const ids = Object.keys(state.settimane).sort(); const ult = state.settimane[ids.at(-1)];
+  $("n-lun").value = ult ? piuGiorni(ult.lunedi,7) : prossimoLunedi();
+  $("n-stag").value = ult?.stagione || "INVERNALE";
+  const n = parseInt(ult?.num,10); $("n-num").value = n ? (n%4)+1 : 1;
+  $("n-err").textContent = "";
+  $("d-nuova").showModal();
+};
+// i dialoghi si gestiscono sull'invio del modulo: l'evento "close" non arriva sempre
+const suOk = (id, fn) => $(id).querySelector("form").addEventListener("submit", e=>{ if(e.submitter?.value==="ok") fn(e); });
+suOk("d-nuova", e=>{
+  const lun = $("n-lun").value; if(!lun) return;
+  const no = t => { $("n-err").textContent=t; e.preventDefault(); };
+  if(daIso(lun).getDay()!==1) return no("La data deve essere un lunedì.");
+  if(state.settimane[lun]) return no("Questa settimana esiste già: la trovi nell'elenco.");
+  if(!state.imp.commensali.length) return no("Prima inserisci i commensali (Commensali e impostazioni) o importa un Excel.");
+  const w = { id:lun, lunedi:lun, stagione:$("n-stag").value.toUpperCase().trim(), num:$("n-num").value.trim(),
+    giorni: range(0,4).map(()=>({ cons:{ ...(state.imp.cons||{}) }, righe: state.imp.commensali.map(c=>({ nome:c.nome, p:"", s:"", c:"", nota:c.nota||"" })) })) };
+  state.settimane[lun]=w; state.corrente=lun; state.giorno=0; disegna(); salvaPresto();
+});
+
+// ospite di un solo giorno
+$("b-ospite").onclick = ()=>{
+  const w=settimana(); const presenti=new Set(w.giorni[state.giorno].righe.map(r=>r.nome.toUpperCase()));
+  const noti = new Set(); Object.values(state.settimane).forEach(s=>s.giorni.forEach(g=>g.righe.forEach(r=>noti.add(r.nome))));
+  $("o-lista").innerHTML = [...noti].filter(n=>!presenti.has(n.toUpperCase())).sort().map(n=>`<option value="${esc(n)}">`).join("");
+  $("o-giorno").textContent = FOGLI[state.giorno].toLowerCase(); $("o-nome").value="";
+  $("d-ospite").showModal();
+};
+suOk("d-ospite", ()=>{
+  const nome=$("o-nome").value.trim().toUpperCase(); if(!nome) return;
+  const w=settimana(); w.giorni[state.giorno].righe.push({ nome, p:"", s:"", c:"", nota:"", ospite:true });
+  disegnaGiorno(); salvaPresto();
+  setTimeout(()=>{ const ins=$("righe").querySelectorAll("tr"); ins[ins.length-1]?.querySelector("input.cod")?.focus(); },0);
+});
+
+// impostazioni e commensali
+function rigaPers(c){
+  const d=document.createElement("div"); d.className="pers";
+  d.innerHTML = `<input class="field p-nome" placeholder="NOME" value="${esc(c.nome)}"><input class="field p-nota" placeholder="nota fissa" value="${esc(c.nota||"")}">
+    <button type="button" class="x" data-su title="Sposta su">↑</button><button type="button" class="x" data-giu title="Sposta giù">↓</button><button type="button" class="x" data-via title="Togli">×</button>`;
+  return d;
+}
+$("b-imp").onclick = ()=>{
+  const box=$("imp-pers"); box.innerHTML=""; state.imp.commensali.forEach(c=>box.append(rigaPers(c)));
+  $("imp-ditta").value=state.imp.ditta||""; $("imp-giro").value=state.imp.giro||""; $("imp-turno").value=state.imp.turno||"";
+  $("imp-cons").innerHTML = CONS.map(k=>`<label>${k}<input class="field" data-cons="${k}" value="${esc((state.imp.cons||{})[k]||"")}"></label>`).join("");
+  $("d-imp").showModal();
+};
+$("imp-add").onclick = ()=>{ const r=rigaPers({nome:"",nota:""}); $("imp-pers").append(r); r.querySelector("input").focus(); };
+$("imp-pers").addEventListener("click", e=>{
+  const riga=e.target.closest(".pers"); if(!riga) return;
+  if(e.target.dataset.via!==undefined) riga.remove();
+  if(e.target.dataset.su!==undefined && riga.previousElementSibling) riga.parentNode.insertBefore(riga, riga.previousElementSibling);
+  if(e.target.dataset.giu!==undefined && riga.nextElementSibling) riga.parentNode.insertBefore(riga.nextElementSibling, riga);
+});
+suOk("d-imp", async ()=>{
+  const commensali=[...$("imp-pers").querySelectorAll(".pers")].map(d=>({ nome:d.querySelector(".p-nome").value.trim().toUpperCase(), nota:d.querySelector(".p-nota").value.trim().toUpperCase() })).filter(c=>c.nome);
+  state.imp = { ...state.imp, commensali, ditta:$("imp-ditta").value.trim().toUpperCase(), giro:$("imp-giro").value.trim(), turno:$("imp-turno").value.trim(),
+    cons: Object.fromEntries([...$("imp-cons").querySelectorAll("input")].map(i=>[i.dataset.cons, i.value.trim().toUpperCase()])) };
+  try{ await store.salvaImp(structuredClone(state.imp)); $("b-stato").textContent="Impostazioni salvate"; }catch(e){ errore("Salvataggio non riuscito: "+(e.code||e.message)); }
+  if(!settimana()) disegna();
+});
+
+document.addEventListener("click", e=>{
+  const a=e.target.closest("[data-act]"); if(!a) return;
+  if(a.dataset.act==="importa") $("f-xls").click();
+  if(a.dataset.act==="imp") $("b-imp").click();
+});
+
+$("b-elimina").onclick = async ()=>{
+  const w=settimana(); if(!w) return;
+  if(!confirm(`Eliminare la settimana ${etichetta(w)}? Non si può annullare.`)) return;
+  delete state.settimane[w.id]; state.corrente=null; disegna();
+  try{ await store.eliminaSettimana(w.id); }catch(e){ errore("Eliminazione non riuscita: "+(e.code||e.message)); }
+  onDati(state.settimane, null);
+};
+
+// ---------------------------------------------------------------- librerie Excel, caricate solo quando servono
+const libs = {};
+function carica(src, nome){
+  return libs[src] ||= new Promise((ok,ko)=>{ if(window[nome]) return ok(window[nome]);
+    const s=document.createElement("script"); s.src=src; s.onload=()=>ok(window[nome]); s.onerror=()=>ko(new Error("libreria non raggiungibile")); document.head.append(s); });
+}
+const XLSXJS  = () => carica("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", "XLSX");
+const EXCELJS = () => carica("https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js", "ExcelJS");
+
+// ---------------------------------------------------------------- importazione di una Lista Commensali esistente
+$("b-importa").onclick = ()=>$("f-xls").click();
+$("f-xls").addEventListener("change", async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const XLSX = await XLSXJS();
+    const wb = XLSX.read(await f.arrayBuffer(), { cellDates:true });
+    const w = importaLista(wb, XLSX);
+    if(state.settimane[w.id] && !confirm(`La settimana ${etichetta(w)} è già in archivio. Sostituirla con quella del file?`)) return;
+    state.settimane[w.id]=w; state.corrente=w.id; state.giorno=0;
+    if(!state.imp.commensali.length){
+      // primo avvio: l'elenco fisso e' quello del lunedi', con le note che si ripetono tutti i giorni
+      const fisse = n => w.giorni.every(g=>{ const r=g.righe.find(x=>x.nome===n); return r && isLatt(r); }) ? "SENZA LATTOSIO" : "";
+      state.imp.commensali = w.giorni[0].righe.map(r=>({ nome:r.nome, nota:fisse(r.nome) }));
+      w.giorni.forEach((g,i)=>{ if(i) g.righe.forEach(r=>{ if(!state.imp.commensali.some(c=>c.nome===r.nome)) r.ospite=true; }); });
+      await store.salvaImp(structuredClone(state.imp));
+    }
+    disegna(); salvaPresto();
+  }catch(err){ alert("Non riesco a leggere il file: "+err.message); }
+});
+
+function importaLista(wb, XLSX){
+  const fogli = wb.SheetNames.slice(0,5);
+  if(fogli.length<5) throw new Error("servono i 5 fogli da lunedì a venerdì");
+  const val = (ws,a) => ws[a] ? ws[a].v : "";
+  const ws0 = wb.Sheets[fogli[0]];
+  let lun = val(ws0,"B3");
+  if(!(lun instanceof Date)) throw new Error("nel lunedì manca la data in B3");
+  lun = iso(new Date(lun.getFullYear(), lun.getMonth(), lun.getDate() + (lun.getHours()>=12?1:0)));
+  if(daIso(lun).getDay()!==1) throw new Error("la data in B3 del primo foglio non è un lunedì");
+  const m = String(val(ws0,"A4")).match(/settimana\s*(\d+)\s*(.*)/i);
+  const giorni = fogli.map(nome=>{
+    const ws = wb.Sheets[nome]; const fine = XLSX.utils.decode_range(ws["!ref"]).e.r+1; const righe=[];
+    for(let r=5; r<=fine; r++){
+      const n = String(val(ws,"A"+r)).trim(); if(!n) continue;
+      const cel = c => { const v=val(ws,c+r); return typeof v==="number" ? String(v) : (String(v).trim()==="---" ? "" : String(v).trim()); };
+      righe.push({ nome:n.toUpperCase(), p:cel("C"), s:cel("D"), c:cel("E"), nota:String(val(ws,"F"+r)).trim().toUpperCase() });
+    }
+    return { righe };
+  });
+  return { id:lun, lunedi:lun, stagione:(m?.[2]||"").trim().toUpperCase(), num:m?.[1]||"", giorni };
+}
+
+// ---------------------------------------------------------------- Excel della Lista Commensali, come il file originale
+const nomeLista = w => `LISTA COMMENSALI ${ggmmaa(w.lunedi)} -- ${ggmmaa(piuGiorni(w.lunedi,4))} ${w.stagione} ${w.num}`.trim();
+const nomeRiep  = w => `PRENOTAZIONE PASTI ${ggmmaa(w.lunedi)} --- ${ggmmaa(piuGiorni(w.lunedi,4))} ${w.stagione} ${w.num}`.trim();
+
+$("b-excel").onclick = async ()=>{
+  const w=settimana(); if(!w) return;
+  const b=$("b-excel"); b.disabled=true; const t=b.textContent; b.textContent="Preparo il file…";
+  try{
+    const ExcelJS = await EXCELJS();
+    const buf = await listaExcel(w, ExcelJS);
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+    a.download = nomeLista(w)+".xlsx"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  }catch(err){ alert("File non creato: "+err.message); }
+  finally{ b.disabled=false; b.textContent=t; }
+};
+
+async function listaExcel(w, ExcelJS){
+  const wb = new ExcelJS.Workbook();
+  const A = (size, extra={}) => ({ name:"Arial", size, ...extra });
+  const sottile = { style:"thin", color:{argb:"FF000000"} };
+  const bordi = { top:sottile, left:sottile, bottom:sottile, right:sottile };
+  const centro = { horizontal:"center", vertical:"middle" };
+  const AZZ = "FF00B0F0";
+  w.giorni.forEach((g,i)=>{
+    const ws = wb.addWorksheet(FOGLI[i], { pageSetup:{ paperSize:9, orientation:"portrait", fitToPage:true, fitToWidth:1, fitToHeight:0,
+      margins:{ left:0.75, right:0.75, top:0.2, bottom:0.75, header:0.3, footer:0.3 } } });
+    [25.33,14.67,8.33,8.11,8.11,8.11,8.78].forEach((wd,k)=> ws.getColumn(k+1).width = wd);
+    ws.getRow(1).height = 13.2; ws.getRow(2).hidden = true;
+    ws.getRow(3).height = 30; ws.getRow(4).height = 15;
+    const [y,mo,d] = piuGiorni(w.lunedi,i).split("-").map(Number);
+    const c = (a,v,font,al) => { const x=ws.getCell(a); x.value=v; x.font=font; if(al) x.alignment=al; x.border=bordi; return x; };
+    c("A3", GIORNI[i], A(20), { vertical:"middle" });
+    const dt = c("B3", new Date(Date.UTC(y,mo-1,d)), A(14), { horizontal:"left", vertical:"middle" }); dt.numFmt = "dd/mm/yyyy";
+    ["P","S","C"].forEach((h,k)=> c(String.fromCharCode(67+k)+"3", h, A(24), centro));
+    ws.mergeCells("A4:B4"); c("A4", `Settimana ${w.num} ${w.stagione}`.trim(), A(10,{bold:true}), centro); ws.getCell("B4").border=bordi;
+    ["C4","D4","E4"].forEach(a=>c(a,null,A(10)));
+    const righe = [...g.righe, {nome:""}, {nome:""}];      // due righe vuote in fondo, come nel foglio
+    righe.forEach((r,k)=>{
+      const n = 5+k; ws.getRow(n).height = 30; ws.mergeCells(`A${n}:B${n}`);
+      const m = r.nome.match(/^(.*?)\s*(\(.*\))$/);
+      const nome = m ? { richText:[ {text:m[1]+" ", font:A(24)}, {text:m[2], font:A(14)} ] } : r.nome;
+      c("A"+n, nome || null, A(24), centro); ws.getCell("B"+n).border=bordi;   // B e' unita ad A: solo il bordo, il valore la svuoterebbe
+      if(!r.nome) { ["C","D","E"].forEach(col=>c(col+n,null,A(24))); return; }
+      const latt = isLatt(r), pasto = haPasto(r);
+      ["p","s","c"].forEach((k2,j)=>{
+        const col = String.fromCharCode(67+j); const v = num(r[k2]);
+        const x = c(col+n, pasto ? (v ?? (String(r[k2]||"").trim() || null)) : "---", A(24, latt?{color:{argb:AZZ}}:{}), centro);
+        if(v===31 && isBan(r)) x.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFFFFF00"} };
+      });
+      if(r.nota){ const x=ws.getCell("F"+n); x.value=r.nota; x.alignment={vertical:"middle"};
+        x.font = latt ? A(11,{bold:true,color:{argb:AZZ}}) : A(10);
+        if(latt) x.border = bordi; }
+    });
+    const tot = riepilogo(g.righe).pasti;
+    const gx = ws.getCell("G5"); gx.value = `${tot} PASTI`; gx.font = A(10); gx.alignment = { vertical:"middle" };
+    // fabbisogno consumabili, sotto la lista, solo le voci compilate
+    const cons = g.cons || {}; const voci = CONS.filter(k=>String(cons[k]||"").trim());
+    let ultima = 4+righe.length;
+    if(voci.length){
+      const t0 = ultima+2; ws.getRow(t0).height = 22;
+      ws.mergeCells(`A${t0}:E${t0}`); const tt = ws.getCell("A"+t0); tt.value = "FABBISOGNO CONSUMABILI"; tt.font = A(12,{bold:true}); tt.alignment = { vertical:"middle" };
+      voci.forEach((k,j)=>{ const n = t0+1+j; ws.getRow(n).height = 22;
+        ws.mergeCells(`A${n}:B${n}`); c("A"+n, k, A(12), { horizontal:"left", vertical:"middle", indent:1 }); ws.getCell("B"+n).border = bordi;
+        ws.mergeCells(`C${n}:E${n}`); ws.getCell("D"+n).border = bordi; ws.getCell("E"+n).border = bordi;
+        const v = String(cons[k]).trim(); c("C"+n, /^\d+$/.test(v) ? Number(v) : v, A(12,{bold:true}), centro); });
+      ultima = t0 + voci.length;
+    }
+    ws.pageSetup.printArea = `A3:G${ultima}`;
+  });
+  return wb.xlsx.writeBuffer();
+}
+
+// ---------------------------------------------------------------- riepilogo per il fornitore (PDF dalla stampa del browser)
+$("b-pdf").onclick = ()=>{
+  const w=settimana(); if(!w) return;
+  const errori = w.giorni.flatMap((g,i)=>controlli(g.righe).filter(m=>m[0]==="err").map(m=>`${FOGLI[i]}: ${m[1]}`));
+  if(errori.length && !confirm("Ci sono errori da correggere:\n\n"+errori.join("\n")+"\n\nStampare lo stesso?")) return;
+  $("stampa").innerHTML = w.giorni.map((g,i)=>paginaRiepilogo(w,i)).join("");
+  const titolo = document.title; document.title = nomeRiep(w);
+  const imgs=[...$("stampa").querySelectorAll("img")];
+  Promise.all(imgs.map(im=>im.complete?1:new Promise(r=>{im.onload=im.onerror=r;}))).then(()=>{
+    window.print(); document.title = titolo;
+  });
+};
+
+function paginaRiepilogo(w, i){
+  const rp = riepilogo(w.giorni[i].righe);
+  const t = (x,y,s,extra="") => `<div class="t" style="left:${x}px;top:${y}px;${extra}">${s}</div>`;
+  const tc = (cx,y,s,extra="") => `<div class="t" style="left:${cx-300}px;width:600px;text-align:center;top:${y}px;${extra}">${s}</div>`;
+  const cella = (x,y,w2,h,s,extra="") => `<div class="cell ${extra}" style="left:${x}px;top:${y}px;width:${w2}px;height:${h}px">${s}</div>`;
+  const tabella = (x,y,tit,codici,h,altri=[]) => {
+    let s = cella(x,y,140,25,tit); let yy=y+25;
+    for(const c of codici){ s += cella(x,yy,70,h,c) + cella(x+69,yy,71,h,rp.conta[c]||""); yy+=h-1; }
+    for(const a of altri){ s += cella(x,yy,70,h,a.c,a.cls) + cella(x+69,yy,71,h,a.v||"",a.cls); yy+=h-1; }
+    return s;
+  };
+  const q = (x,y,v) => cella(x,y,71,26,esc(v||""));
+  let h = `<div class="pagina">`;
+  h += `<div class="box" style="left:70px;top:16px;width:628px;height:162px"></div>`;
+  h += `<img src="logo-fornitore.png" alt="" style="left:80px;top:22px;width:560px;height:150px;object-fit:contain;object-position:left center">`;
+  h += tc(488,121,"Ristorazione collettiva","font-weight:400;font-size:13.5px") + tc(488,140,"Sistema brevettato per pasti vicolati","font-weight:400;font-size:13.5px") + tc(488,160,"in monoporzione e pluriporzione","font-weight:400;font-size:13.5px");
+  h += tc(385,206,`FOGLIO PRENOTAZIONE PASTI - ${esc(`${w.stagione} ${w.num}`.trim())}`,"font-size:23px");
+  h += t(75,266,"PRENOTAZIONE GIORNO") + t(75,313,"DITTA") + t(75,407,"NUMERO GIRO") + t(75,454,"TURNO") + t(75,502,"TOTALE PASTI") + t(105,596,"FABBISOGNO CONSUMABILI");
+  h += `<div class="box" style="left:281px;top:260px;width:140px;height:49px"></div>`;
+  h += tc(351,266,GIORNI[i],"font-size:14px") + tc(351,290,ggmmaaaa(piuGiorni(w.lunedi,i)),"font-size:14px");
+  h += `<div class="box" style="left:210px;top:308px;width:211px;height:48px"></div>` + tc(315,323,esc(state.imp.ditta||"HORIZON"),"font-size:18px");
+  h += cella(210,401,71,49,esc(state.imp.giro||"")) + cella(210,449,71,49,esc(state.imp.turno||"")) + cella(210,497,71,49,rp.pasti);
+  const cons = w.giorni[i].cons || {};
+  CONS.forEach((s,k)=>{ h += t(75,646+k*25,s) + q(210,641+k*25,cons[s]); });
+  h += tabella(350,401,"CONTORNI",CONTORNI,24,[{c:"31",v:rp.banana||"",cls:"giallo"}]);
+  h += tabella(350,641,"PIATTI UNICI",UNICI,26);
+  h += tabella(350,791,"PIATTI VEGANI",VEGANI,24);
+  h += tabella(559,260,"PRIMI",PRIMI,24.6);
+  h += tabella(559,617,"SECONDI",SECONDI,25.4);
+  h += tc(385,981,"VARIAZIONI");
+  h += t(75,1021,'PASTO AGGIUNTIVO "SENZA LATTOSIO"',"font-weight:400");
+  h += `<div class="linea" style="left:70px;top:1040px;width:628px"></div>`;
+  h += t(115,1057,esc(rp.variazioni[0]),"font-weight:400") + t(250,1057,esc(rp.variazioni[1]),"font-weight:400") + t(390,1057,esc(rp.variazioni[2]),"font-weight:400");
+  h += `<div class="linea" style="left:70px;top:1077px;width:628px"></div><div class="linea" style="left:70px;top:1113px;width:628px"></div>`;
+  h += `<div class="giallo" style="left:72px;top:1124px;width:140px;height:24px"></div>`;
+  h += t(75,1128,"NR. 31 =","font-size:17px") + `<div style="left:140px;top:1130px;width:10px;height:10px;border:1px solid #000;background:#fff;font-size:10px;line-height:9px;text-align:center">${rp.banana?"✓":""}</div>` + t(155,1129,"BANANA","font-weight:400;font-size:10px");
+  h += `<div class="linea" style="left:70px;top:1150px;width:628px"></div>`;
+  return h + `</div>`;
+}
+
+// ---------------------------------------------------------------- avvio
+(async ()=>{
+  if(PROVA){
+    $("b-prova").hidden=false; $("b-prova").title="Firebase non è ancora configurato: i dati restano solo in questo browser.";
+    store = storeLocale(); $("v-app").hidden=false;
+  } else {
+    try{ store = await storeFirebase(); }
+    catch(e){ $("v-login").hidden=false; $("login-err").textContent="Non riesco a raggiungere Firebase: controlla la connessione."; return; }
+  }
+  await store.avvia(onDati);
+})();
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body>
+</html>

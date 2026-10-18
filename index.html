@@ -76,6 +76,16 @@ table.grid th.c{text-align:center}
 table.grid tfoot td{border-bottom:none;padding-top:10px;font-weight:400;font-size:15px}
 table.grid td{padding:3px 4px;border-bottom:1px solid var(--line)}
 table.grid td.nome{font-weight:600;padding-left:6px;white-space:nowrap}
+.piatti{font-size:12px;font-weight:400;color:var(--muted);white-space:normal;max-width:260px;line-height:1.3}
+.piatti .maiale::after{content:" 🐷"}
+.piatti .no{color:var(--err)}
+.menu-box{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:13px}
+.menu-box summary{cursor:pointer;font-weight:600;color:var(--brand)}
+.menu-box h4{margin:10px 0 3px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.menu-box ol{list-style:none;margin:0;padding:0}
+.menu-box li{display:grid;grid-template-columns:26px 1fr;gap:4px;padding:1px 0}
+.menu-box li b{font-family:var(--mono);color:var(--muted);font-weight:600}
+.menu-box li.maiale span::after{content:" 🐷"}
 table.grid tr.assente td.nome{color:var(--muted);font-weight:400}
 table.grid tr.latt td.nome::after{content:"senza lattosio";font-size:11px;color:var(--latt);font-weight:600;margin-left:8px}
 input.cod{width:58px;text-align:center;font:600 18px var(--mono);border:1px solid var(--line);border-radius:7px;padding:5px 2px;background:var(--card)}
@@ -211,6 +221,7 @@ dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
         <h3 id="side-tit">Riepilogo del giorno</h3>
         <div class="row" style="align-items:baseline"><span class="tot" id="side-tot">0</span><span class="muted">pasti</span></div>
         <div id="side-conti" class="conti"></div>
+        <details class="menu-box" id="menu-box"><summary id="menu-tit">Menù del giorno</summary><div id="menu-lista"></div></details>
         <div class="actions">
           <button id="b-excel" class="btn primary">Scarica Lista Commensali (Excel)</button>
           <button id="b-pdf" class="btn">Riepilogo fornitore → PDF</button>
@@ -267,6 +278,7 @@ dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 
 <script type="module">
 import { firebaseConfig } from "./firebase-config.js";
+import { MENU, nomePiatto, conMaiale } from "./menu.js";
 
 // ---------------------------------------------------------------- costanti del modulo fornitore
 const GIORNI   = ["LUNEDI'","MARTEDI'","MERCOLEDI'","GIOVEDI'","VENERDI'"];
@@ -321,7 +333,10 @@ function riepilogo(righe){
   return { conta, pasti, banana, variazioni, nLatt: latt.length };
 }
 
-function controlli(righe){
+// menu' della settimana (1-4) per il giorno i; null se il numero non e' fra 1 e 4
+const menuDi = (w,i) => MENU[parseInt(w?.num,10)]?.[i] || null;
+
+function controlli(righe, menu){
   const out = [];
   const visti = new Map();
   righe.forEach(r=>{
@@ -334,6 +349,7 @@ function controlli(righe){
       if(n===null) out.push(["err", `${r.nome}, colonna ${COL[k]}: «${t}» non è un numero.`]);
       else if(!NOTI.has(n)) out.push(["err", `${r.nome}, colonna ${COL[k]}: il piatto ${n} non esiste nel modulo del fornitore e non verrebbe contato.`]);
       else if(!VALIDI[k].includes(n)) out.push(["warn", `${r.nome}: il ${n} è nella colonna ${COL[k]}, controlla che sia giusto.`]);
+      else if(menu && !menu[n]) out.push(["warn", `${r.nome}: il ${n} oggi non è nel menù.`]);
     }
     if(isBan(r) && ![r.p,r.s,r.c].some(v=>num(v)===31)) out.push(["warn", `${r.nome} ha la nota BANANA ma nessun 31.`]);
   });
@@ -440,6 +456,23 @@ function disegnaTabs(){
   }).join("");
 }
 
+function piattiRiga(r){
+  const m = menuDi(settimana(), state.giorno); if(!m) return "";
+  return ["p","s","c"].map(k=>{ const n=num(r[k]); if(n===null) return "";
+    const x = m[n]; if(!x) return `<span class="no">${n} non nel menù</span>`;
+    return `<span class="${conMaiale(x)?"maiale":""}" ${conMaiale(x)?'title="con carne di maiale"':""}>${esc(nomePiatto(x))}</span>`;
+  }).filter(Boolean).join(" · ");
+}
+
+function disegnaMenu(){
+  const w = settimana(), m = menuDi(w, state.giorno);
+  $("menu-tit").textContent = m ? `Menù di ${FOGLI[state.giorno].toLowerCase()} · settimana ${parseInt(w.num,10)}` : "Menù del giorno";
+  if(!m){ $("menu-lista").innerHTML = `<p class="muted">Scrivi in alto la settimana menù (da 1 a 4) per vedere i piatti.</p>`; return; }
+  const gruppo = (tit, cod) => { const v = cod.filter(c=>m[c]); return v.length ? `<h4>${tit}</h4><ol>${v.map(c=>`<li class="${conMaiale(m[c])?"maiale":""}"><b>${c}</b><span>${esc(nomePiatto(m[c]))}</span></li>`).join("")}</ol>` : ""; };
+  $("menu-lista").innerHTML = gruppo("Primi",PRIMI) + gruppo("Secondi",SECONDI) + gruppo("Contorni",CONTORNI) + gruppo("Piatti unici",UNICI) + gruppo("Vegani, al posto del secondo",VEGANI) +
+    `<p class="muted" style="margin-top:8px">🐷 = con carne di maiale.</p>`;
+}
+
 function disegnaGiorno(){
   const w = settimana(), g = w.giorni[state.giorno];
   const tb = $("righe");
@@ -449,12 +482,13 @@ function disegnaGiorno(){
     const cod = k => { const n=num(r[k]); const bad = String(r[k]??"").trim() && (n===null ? r[k].trim()!=="---" : !NOTI.has(n));
       const ban = n===31 && isBan(r);
       return `<td><input class="cod ${bad?"bad":""} ${ban?"ban":""}" data-i="${i}" data-k="${k}" data-pos="${i}${k}" value="${esc(r[k]??"")}" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="${esc(r.nome)} ${COL[k]}"></td>`; };
-    return `<tr class="${cls}"><td class="nome">${esc(r.nome)}</td>${cod("p")}${cod("s")}${cod("c")}
+    return `<tr class="${cls}"><td class="nome">${esc(r.nome)}<div class="piatti">${piattiRiga(r)}</div></td>${cod("p")}${cod("s")}${cod("c")}
       <td><input class="nota" data-i="${i}" data-k="nota" data-pos="${i}nota" value="${esc(r.nota||"")}" placeholder="—" aria-label="nota ${esc(r.nome)}"></td>
       <td>${r.ospite?`<button class="x" data-tolgo="${i}" title="Togli da questo giorno">×</button>`:""}</td></tr>`;
   }).join("");
   if(fuoco){ const el = tb.querySelector(`[data-pos="${fuoco}"]`); if(el){ el.focus(); const n=el.value.length; try{el.setSelectionRange(n,n);}catch{} } }
   disegnaCons();
+  disegnaMenu();
   aggiornaLato();
 }
 
@@ -479,7 +513,7 @@ function aggiornaLato(){
     gruppo("Unici", UNICI) + gruppo("Vegani", VEGANI) +
     (rp.nLatt ? `<span class="k">S. lattosio</span><span class="v">${esc(rp.variazioni.filter(Boolean).join(" · "))}</span>` : "");
   const giorniCons = w.giorni.map((x,i)=>haCons(x)?FOGLI[i].toLowerCase():null).filter(Boolean);
-  const avvisi = controlli(g.righe);
+  const avvisi = controlli(g.righe, menuDi(w,state.giorno));
   if(giorniCons.length>1) avvisi.push(["warn", `Consumabili compilati su più giorni (${giorniCons.join(", ")}): di solito vanno su uno solo.`]);
   $("msgs").innerHTML = avvisi.map(([t,m])=>`<div class="msg ${t}">${esc(m)}</div>`).join("");
   // aggiorna solo i contatori delle linguette, senza ridisegnare
@@ -491,7 +525,7 @@ function aggiornaLato(){
 $("tabs").addEventListener("click", e=>{ const b=e.target.closest(".tab"); if(!b) return; state.giorno=+b.dataset.g; disegnaTabs(); disegnaGiorno(); });
 $("sel-sett").addEventListener("change", e=>{ state.corrente=e.target.value; state.giorno=0; disegna(); });
 $("w-stag").addEventListener("input", e=>{ const w=settimana(); if(!w) return; w.stagione=e.target.value.toUpperCase().trim(); salvaPresto(); });
-$("w-num").addEventListener("input", e=>{ const w=settimana(); if(!w) return; w.num=e.target.value.trim(); salvaPresto(); });
+$("w-num").addEventListener("input", e=>{ const w=settimana(); if(!w) return; w.num=e.target.value.trim(); disegnaGiorno(); salvaPresto(); });
 
 $("righe").addEventListener("input", e=>{
   const el = e.target; if(!el.dataset.k) return;
@@ -503,6 +537,7 @@ $("righe").addEventListener("input", e=>{
   tr.querySelectorAll("input.cod").forEach(c=>{ const v=r[c.dataset.k]; const n=num(v);
     c.classList.toggle("bad", !!String(v??"").trim() && (n===null ? String(v).trim()!=="---" : !NOTI.has(n)));
     c.classList.toggle("ban", n===31 && isBan(r)); });
+  tr.querySelector(".piatti").innerHTML = piattiRiga(r);
   aggiornaLato(); salvaPresto();
 });
 $("cons").addEventListener("input", e=>{
@@ -727,7 +762,7 @@ async function listaExcel(w, ExcelJS){
 // ---------------------------------------------------------------- riepilogo per il fornitore (PDF dalla stampa del browser)
 $("b-pdf").onclick = ()=>{
   const w=settimana(); if(!w) return;
-  const errori = w.giorni.flatMap((g,i)=>controlli(g.righe).filter(m=>m[0]==="err").map(m=>`${FOGLI[i]}: ${m[1]}`));
+  const errori = w.giorni.flatMap((g,i)=>controlli(g.righe, menuDi(w,i)).filter(m=>m[0]==="err").map(m=>`${FOGLI[i]}: ${m[1]}`));
   if(errori.length && !confirm("Ci sono errori da correggere:\n\n"+errori.join("\n")+"\n\nStampare lo stesso?")) return;
   $("stampa").innerHTML = w.giorni.map((g,i)=>paginaRiepilogo(w,i)).join("");
   const titolo = document.title; document.title = nomeRiep(w);

@@ -1,7 +1,7 @@
 // Fa partire l'app anche senza rete. I dati offline li gestisce Firestore da solo:
 // qui si conservano i file dell'app, la libreria Firebase e le due librerie Excel.
-const CACHE = "mensa-v1";
-const FILES = ["./", "./index.html", "./firebase-config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./logo-fornitore.png"];
+const CACHE = "mensa-v2";
+const FILES = ["./", "./index.html", "./firebase-config.js", "./menu.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./logo-fornitore.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -703,48 +703,69 @@ $("b-excel").onclick = async ()=>{
   finally{ b.disabled=false; b.textContent=t; }
 };
 
+// Misure prese una per una dai cinque fogli della Lista Commensali originale (.xls).
+// Le larghezze sono i valori interni che Excel scrive nel file: Excel ne mostra circa 0,77 in meno
+// (21,66 nel file = 20,89 a schermo), quindi qui vanno quelli e non quelli che si leggono nella colonna.
+// Gli spazi dopo LUNEDI' e MARTEDI' ci sono anche nell'originale: allineati a destra spostano la parola.
+const FOGLIO_ORIG = [
+  { col:[21.6640625, 16.5546875, 8.88671875, 8.88671875, 8.88671875, 8.88671875, 9.6640625 ], giorno:{ size:24, h:"right", testo:"LUNEDI'  " },  data:"center", psc:"bottom" },
+  { col:[24.88671875,15.44140625,9.5546875,  9.5546875,  8.88671875, 8.88671875, 9.5546875 ], giorno:{ size:24, h:"right", testo:"MARTEDI' " },  data:"center" },
+  { col:[26.109375,  15.44140625,9.109375,   8.88671875, 8.88671875, 8.88671875, 9.5546875 ], giorno:{ size:20, h:undefined }, data:"left" },
+  { col:[22,         15.44140625,8.88671875, 8.88671875, 8.88671875, 8.88671875, 9.44140625], giorno:{ size:24, h:undefined }, data:"left" },
+  { col:[24.5546875, 15.44140625,8.88671875, 9.109375,   9.109375,   8.88671875, 9.44140625], giorno:{ size:24, h:undefined }, data:"left" },
+];
+const JSZIPJS = () => carica("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js", "JSZip");
+
 async function listaExcel(w, ExcelJS){
   const wb = new ExcelJS.Workbook();
   const A = (size, extra={}) => ({ name:"Arial", size, ...extra });
   const sottile = { style:"thin", color:{argb:"FF000000"} };
   const bordi = { top:sottile, left:sottile, bottom:sottile, right:sottile };
   const centro = { horizontal:"center", vertical:"middle" };
+  const basso  = { horizontal:"center", vertical:"bottom" };
   const AZZ = "FF00B0F0";
   w.giorni.forEach((g,i)=>{
-    const ws = wb.addWorksheet(FOGLI[i], { pageSetup:{ paperSize:9, orientation:"portrait", fitToPage:true, fitToWidth:1, fitToHeight:0,
-      margins:{ left:0.75, right:0.75, top:0.2, bottom:0.75, header:0.3, footer:0.3 } } });
-    [25.33,14.67,8.33,8.11,8.11,8.11,8.78].forEach((wd,k)=> ws.getColumn(k+1).width = wd);
-    ws.getRow(1).height = 13.2; ws.getRow(2).hidden = true;
+    const spec = FOGLIO_ORIG[i];
+    // senza "views" ExcelJS non scrive la vista del foglio, ed Excel allora legge le righe all'80% (30 diventa 24)
+    const ws = wb.addWorksheet(FOGLI[i], { views:[{ zoomScale:100 }], pageSetup:{ paperSize:9, orientation:"portrait", scale:100, fitToPage:false,
+      margins:{ left:0.75, right:0.75, top:0.2, bottom:0.18, header:0.18, footer:0.5 } } });
+    spec.col.forEach((wd,k)=> ws.getColumn(k+1).width = wd);
+    ws.getRow(1).height = 13.2;
     ws.getRow(3).height = 30; ws.getRow(4).height = 15;
     const [y,mo,d] = piuGiorni(w.lunedi,i).split("-").map(Number);
     const c = (a,v,font,al) => { const x=ws.getCell(a); x.value=v; x.font=font; if(al) x.alignment=al; x.border=bordi; return x; };
-    c("A3", GIORNI[i], A(20), { vertical:"middle" });
-    const dt = c("B3", new Date(Date.UTC(y,mo-1,d)), A(14), { horizontal:"left", vertical:"middle" }); dt.numFmt = "dd/mm/yyyy";
-    ["P","S","C"].forEach((h,k)=> c(String.fromCharCode(67+k)+"3", h, A(24), centro));
+    // giorno e data stanno nello stesso riquadro: niente riga verticale fra A3 e B3
+    c("A3", spec.giorno.testo || GIORNI[i], A(spec.giorno.size), { horizontal:spec.giorno.h, vertical:"bottom" }).border = { top:sottile, left:sottile, bottom:sottile };
+    const dt = c("B3", new Date(Date.UTC(y,mo-1,d)), A(14), { horizontal:spec.data, vertical:"bottom" }); dt.numFmt = "dd/mm/yyyy";
+    dt.border = { top:sottile, right:sottile, bottom:sottile };
+    ["P","S","C"].forEach((h,k)=> c(String.fromCharCode(67+k)+"3", h, A(24), { horizontal:"center", vertical:spec.psc || "middle" }));
     ws.mergeCells("A4:B4"); c("A4", `Settimana ${w.num} ${w.stagione}`.trim(), A(10,{bold:true}), centro); ws.getCell("B4").border=bordi;
-    ["C4","D4","E4"].forEach(a=>c(a,null,A(10)));
-    const righe = [...g.righe, {nome:""}, {nome:""}];      // due righe vuote in fondo, come nel foglio
-    righe.forEach((r,k)=>{
-      const n = 5+k; ws.getRow(n).height = 30; ws.mergeCells(`A${n}:B${n}`);
+    ["C4","D4","E4"].forEach(a=>c(a,null,A(24),centro));
+    // la griglia arriva sempre alla riga 18 come nel foglio, e almeno due righe vuote in fondo
+    const ultimaGriglia = Math.max(18, 4 + g.righe.length + 2);
+    for(let n=5; n<=ultimaGriglia; n++){
+      const r = g.righe[n-5] || { nome:"" };
+      ws.getRow(n).height = 30; ws.mergeCells(`A${n}:B${n}`);
       const m = r.nome.match(/^(.*?)\s*(\(.*\))$/);
       const nome = m ? { richText:[ {text:m[1]+" ", font:A(24)}, {text:m[2], font:A(14)} ] } : r.nome;
-      c("A"+n, nome || null, A(24), centro); ws.getCell("B"+n).border=bordi;   // B e' unita ad A: solo il bordo, il valore la svuoterebbe
-      if(!r.nome) { ["C","D","E"].forEach(col=>c(col+n,null,A(24))); return; }
+      c("A"+n, nome || null, A(24), basso); ws.getCell("B"+n).border=bordi;   // B e' unita ad A: solo il bordo, il valore la svuoterebbe
+      if(!r.nome){ ["C","D","E"].forEach(col=>c(col+n,null,A(24),centro)); continue; }
       const latt = isLatt(r), pasto = haPasto(r);
       ["p","s","c"].forEach((k2,j)=>{
         const col = String.fromCharCode(67+j); const v = num(r[k2]);
         const x = c(col+n, pasto ? (v ?? (String(r[k2]||"").trim() || null)) : "---", A(24, latt?{color:{argb:AZZ}}:{}), centro);
         if(v===31 && isBan(r)) x.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFFFFF00"} };
       });
-      if(r.nota){ const x=ws.getCell("F"+n); x.value=r.nota; x.alignment={vertical:"middle"};
-        x.font = latt ? A(11,{bold:true,color:{argb:AZZ}}) : A(10);
-        if(latt) x.border = bordi; }
-    });
+      if(r.nota){
+        if(latt){ ws.mergeCells(`F${n}:G${n}`); c("F"+n, r.nota, A(11,{bold:true,color:{argb:AZZ}}), centro); ws.getCell("G"+n).border = bordi; }
+        else { const x=ws.getCell("F"+n); x.value=r.nota; x.font=A(10); x.alignment={ vertical:"bottom" }; }
+      }
+    }
     const tot = riepilogo(g.righe).pasti;
-    const gx = ws.getCell("G5"); gx.value = `${tot} PASTI`; gx.font = A(10); gx.alignment = { vertical:"middle" };
+    const gx = ws.getCell("G5"); if(!gx.value){ gx.value = `${tot} PASTI`; gx.font = A(10); gx.alignment = { vertical:"bottom" }; }
     // fabbisogno consumabili, sotto la lista, solo le voci compilate
     const cons = g.cons || {}; const voci = CONS.filter(k=>String(cons[k]||"").trim());
-    let ultima = 4+righe.length;
+    let ultima = ultimaGriglia;
     if(voci.length){
       const t0 = ultima+2; ws.getRow(t0).height = 22;
       ws.mergeCells(`A${t0}:E${t0}`); const tt = ws.getCell("A"+t0); tt.value = "FABBISOGNO CONSUMABILI"; tt.font = A(12,{bold:true}); tt.alignment = { vertical:"middle" };
@@ -756,7 +777,24 @@ async function listaExcel(w, ExcelJS){
     }
     ws.pageSetup.printArea = `A3:G${ultima}`;
   });
-  return wb.xlsx.writeBuffer();
+  return ritoccaXlsx(await wb.xlsx.writeBuffer());
+}
+
+// Ritocchi che ExcelJS non sa fare: carattere "Normale" Arial 10 come l'originale (le larghezze delle
+// colonne si misurano su quello) e riga 2 nascosta (ExcelJS non scrive le righe senza celle).
+async function ritoccaXlsx(buf){
+  const JSZip = await JSZIPJS();
+  const z = await JSZip.loadAsync(buf);
+  let st = await z.file("xl/styles.xml").async("string");
+  st = st.replace(/<fonts([^>]*)><font>[\s\S]*?<\/font>/, '<fonts$1><font><sz val="10"/><name val="Arial"/><family val="2"/></font>');
+  z.file("xl/styles.xml", st);
+  for(const nome of Object.keys(z.files).filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n))){
+    let x = await z.file(nome).async("string");
+    x = x.replace(/<sheetFormatPr[^>]*\/>/, '<sheetFormatPr defaultRowHeight="13.2"/>');
+    x = x.replace(/(<row r="1"[^>]*?)(\/>|>[\s\S]*?<\/row>)/, (m)=> m + '<row r="2" ht="0" hidden="1" customHeight="1"/>');
+    z.file(nome, x);
+  }
+  return z.generateAsync({ type:"arraybuffer" });
 }
 
 // ---------------------------------------------------------------- riepilogo per il fornitore (PDF dalla stampa del browser)

@@ -32,7 +32,9 @@ const UNICI = c35 => `
 34|*INSALATONA CON SURIMI
 35|${c35}`;
 
-const G = (primi, secondi, contorni, c35) => S(primi + PRIMI_FISSI + "\n" + secondi + SECONDI_FISSI + "\n" + contorni + CONTORNI_FISSI + (c35 ? "\n" + UNICI(c35) : "") + "\n" + VEGANI_FISSI);
+// I fissi vanno prima dei piatti del giorno: a parità di numero vince il giorno
+// (il lunedì il 28 è PATATINE CHIPS, non CAROTE GRATTUGGIATE).
+const G = (primi, secondi, contorni, c35) => S(PRIMI_FISSI + "\n" + primi + SECONDI_FISSI + "\n" + secondi + CONTORNI_FISSI + "\n" + contorni + (c35 ? "\n" + UNICI(c35) : "") + "\n" + VEGANI_FISSI);
 
 export const MENU = {
   // ------------------------------------------------------------ SETTIMANA 1
